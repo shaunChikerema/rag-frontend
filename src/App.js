@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const SESSION_ID = 'default';
 
 function SendIcon() {
   return (
@@ -22,29 +23,31 @@ function BrandIcon() {
   );
 }
 
-function SearchIcon() {
+function EmptyIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" stroke="currentColor" style={{ width: 24, height: 24 }}>
-      <circle cx="11" cy="11" r="7" />
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" stroke="currentColor">
+      <circle cx="11" cy="11" r="8" />
       <path d="M21 21l-4.35-4.35" />
+      <path d="M11 8v6M8 11h6" />
     </svg>
   );
 }
 
 function App() {
-  const [tab, setTab]                   = useState('chat');
-  const [messages, setMessages]         = useState([]);
-  const [question, setQuestion]         = useState('');
-  const [topK, setTopK]                 = useState(5);
-  const [threshold, setThreshold]       = useState(0.5);
-  const [loading, setLoading]           = useState(false);
-  const [ingestUrl, setIngestUrl]       = useState('');
-  const [ingestLabel, setIngestLabel]   = useState('');
-  const [ingestLoading, setIngestLoading] = useState(false);
-  const [ingestLog, setIngestLog]       = useState([]);
-  const [apiStatus, setApiStatus]       = useState('checking');
+  const [tab, setTab]                       = useState('chat');
+  const [messages, setMessages]             = useState([]);
+  const [question, setQuestion]             = useState('');
+  const [topK, setTopK]                     = useState(5);
+  const [threshold, setThreshold]           = useState(0.75);
+  const [loading, setLoading]               = useState(false);
+  const [ingestUrl, setIngestUrl]           = useState('');
+  const [ingestLabel, setIngestLabel]       = useState('');
+  const [ingestLoading, setIngestLoading]   = useState(false);
+  const [ingestLog, setIngestLog]           = useState([]);
+  const [apiStatus, setApiStatus]           = useState('checking');
   const bottomRef = useRef(null);
 
+  // Check API status on mount
   useEffect(() => {
     fetch(`${API_URL}/`)
       .then(r => r.json())
@@ -52,6 +55,7 @@ function App() {
       .catch(() => setApiStatus('offline'));
   }, []);
 
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -85,16 +89,30 @@ function App() {
     setMessages(prev => [...prev, userMsg]);
     setQuestion('');
     setLoading(true);
-    const history = messages.map(m => ({ role: m.role, content: m.content }));
+
     try {
       const res = await fetch(`${API_URL}/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: userMsg.content, history, top_k: topK, similarity_threshold: threshold }),
+        body: JSON.stringify({
+          question: userMsg.content,
+          history: [],           // backend loads history from Supabase
+          top_k: topK,
+          similarity_threshold: threshold,
+          session_id: SESSION_ID,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Query failed');
-      setMessages(prev => [...prev, { role: 'assistant', content: data.answer, sources: data.sources }]);
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: data.answer,
+          sources: data.sources,
+          fallback: data.used_fallback,
+        },
+      ]);
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${err.message}`, error: true }]);
     } finally {
@@ -106,16 +124,21 @@ function App() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleQuery(); }
   };
 
-  const clearChat = () => setMessages([]);
+  const clearChat = async () => {
+    setMessages([]);
+    try {
+      await fetch(`${API_URL}/history/${SESSION_ID}`, { method: 'DELETE' });
+    } catch (_) {}
+  };
 
-  const statusLabel = apiStatus === 'checking' ? 'connecting…'
+  const statusLabel = apiStatus === 'checking' ? 'connecting...'
     : apiStatus === 'online' ? 'API online'
     : 'API offline';
 
   return (
     <div className="app">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <header className="header">
         <div className="brand">
           <div className="brand-icon"><BrandIcon /></div>
@@ -130,7 +153,7 @@ function App() {
         </div>
       </header>
 
-      {/* ── Tabs ── */}
+      {/* Tabs */}
       <nav className="tabs">
         {[
           { id: 'chat',     label: 'Query' },
@@ -148,41 +171,34 @@ function App() {
         ))}
       </nav>
 
-      {/* ── Main ── */}
       <main className="main">
 
-        {/* ════════ CHAT ════════ */}
+        {/* CHAT */}
         {tab === 'chat' && (
           <div className="chat-layout">
             <div className="chat-messages">
 
-              {messages.length === 0 && (
+              {messages.length === 0 && !loading && (
                 <div className="empty-state">
-                  <div className="empty-glyph">
-                    <SearchIcon />
+                  <div className="empty-glyph"><EmptyIcon /></div>
+                  <div className="empty-title">Ask anything</div>
+                  <div className="empty-sub">
+                    Search your knowledge base or just have a conversation.
                   </div>
-                  <p className="empty-title">Nothing ingested yet</p>
-                  <p className="empty-sub">
-                    Add a URL to your knowledge base first,<br />then ask questions about it here.
-                  </p>
-
                   <div className="empty-steps">
                     <div className="empty-step">
-                      <div className="step-num">01</div>
+                      <span className="step-num">1</span>
                       <div className="step-body">
                         <div className="step-title">Ingest a URL</div>
-                        <div className="step-desc">Paste any public URL — docs, articles, blog posts. The pipeline scrapes, chunks, and embeds it into your vector DB.</div>
-                        <button className="step-cta" onClick={() => setTab('ingest')}>
-                          Go to Ingest →
-                        </button>
+                        <div className="step-desc">Add pages to your knowledge base via the Ingest tab.</div>
+                        <button className="step-cta" onClick={() => setTab('ingest')}>Go to Ingest →</button>
                       </div>
                     </div>
-
                     <div className="empty-step">
-                      <div className="step-num">02</div>
+                      <span className="step-num">2</span>
                       <div className="step-body">
                         <div className="step-title">Ask a question</div>
-                        <div className="step-desc">Come back here and type anything. The RAG pipeline retrieves the most relevant chunks and generates a grounded answer with inline source citations.</div>
+                        <div className="step-desc">Or just chat — Askragify answers from its own knowledge too.</div>
                       </div>
                     </div>
                   </div>
@@ -194,6 +210,9 @@ function App() {
                   <div className="message-role">
                     <span className="role-dot" />
                     {msg.role === 'user' ? 'YOU' : 'ASKRAGIFY'}
+                    {msg.fallback && (
+                      <span className="fallback-badge">model knowledge</span>
+                    )}
                   </div>
                   <div className="message-content">{msg.content}</div>
                   {msg.sources && msg.sources.length > 0 && (
@@ -235,7 +254,7 @@ function App() {
               <div className="input-row">
                 <textarea
                   className="chat-input"
-                  placeholder="Ask a question about your ingested content…"
+                  placeholder="Ask a question or just say hey..."
                   value={question}
                   onChange={e => setQuestion(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -243,7 +262,7 @@ function App() {
                   disabled={loading}
                 />
                 <button className="send-btn" onClick={handleQuery} disabled={loading || !question.trim()}>
-                  {loading ? <span style={{ color: '#061008', fontSize: 16 }}>…</span> : <SendIcon />}
+                  {loading ? <span style={{ color: '#061008', fontSize: 16 }}>...</span> : <SendIcon />}
                 </button>
               </div>
               <div className="input-hint">Enter to send · Shift+Enter for new line</div>
@@ -251,7 +270,7 @@ function App() {
           </div>
         )}
 
-        {/* ════════ INGEST ════════ */}
+        {/* INGEST */}
         {tab === 'ingest' && (
           <div className="ingest-layout">
             <div className="panel">
@@ -282,7 +301,7 @@ function App() {
                 onClick={handleIngest}
                 disabled={ingestLoading || !ingestUrl.trim()}
               >
-                {ingestLoading ? 'Ingesting…' : 'Ingest URL →'}
+                {ingestLoading ? 'Ingesting...' : 'Ingest URL →'}
               </button>
             </div>
 
@@ -295,7 +314,7 @@ function App() {
                     <div className="log-meta">
                       {entry.label && <span className="log-chip">{entry.label}</span>}
                       <span>{entry.time}</span>
-                      {entry.status === 'loading' && <span className="log-status">ingesting…</span>}
+                      {entry.status === 'loading' && <span className="log-status">ingesting...</span>}
                       {entry.status === 'done'    && <span className="log-status">✓ {entry.chunks} chunks stored</span>}
                       {entry.status === 'error'   && <span className="log-status err">✕ {entry.error}</span>}
                     </div>
@@ -306,12 +325,11 @@ function App() {
           </div>
         )}
 
-        {/* ════════ SETTINGS ════════ */}
+        {/* SETTINGS */}
         {tab === 'settings' && (
           <div className="settings-layout">
             <div className="panel">
               <div className="panel-title">Retrieval settings</div>
-
               <div className="setting-row">
                 <div className="setting-info">
                   <div className="setting-name">Top K results</div>
@@ -323,11 +341,10 @@ function App() {
                   <span className="slider-val">{topK}</span>
                 </div>
               </div>
-
               <div className="setting-row">
                 <div className="setting-info">
                   <div className="setting-name">Similarity threshold</div>
-                  <div className="setting-desc">Minimum cosine similarity score (0–1)</div>
+                  <div className="setting-desc">Minimum cosine similarity score (0-1)</div>
                 </div>
                 <div className="setting-control">
                   <input type="range" min="0" max="1" step="0.05" value={threshold}
@@ -353,7 +370,7 @@ function App() {
               <div className="setting-row">
                 <div className="setting-info">
                   <div className="setting-name">Clear all documents</div>
-                  <div className="setting-desc">Permanently deletes all ingested content</div>
+                  <div className="setting-desc">Permanently deletes all ingested content from the vector DB</div>
                 </div>
                 <button className="danger-btn" onClick={async () => {
                   if (!window.confirm('Delete ALL documents? This cannot be undone.')) return;
@@ -366,6 +383,19 @@ function App() {
                   }
                 }}>
                   Clear DB
+                </button>
+              </div>
+              <div className="setting-row">
+                <div className="setting-info">
+                  <div className="setting-name">Clear conversation history</div>
+                  <div className="setting-desc">Deletes all saved messages for this session</div>
+                </div>
+                <button className="danger-btn" onClick={async () => {
+                  if (!window.confirm('Clear all conversation history?')) return;
+                  await clearChat();
+                  alert('Conversation history cleared.');
+                }}>
+                  Clear History
                 </button>
               </div>
             </div>
