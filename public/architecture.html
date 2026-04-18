@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Askragify — Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0b0e0d;
+  --surface: #111614;
+  --surface2: #161c19;
+  --border: rgba(62,207,142,0.12);
+  --border2: rgba(62,207,142,0.22);
+  --g: #3ECF8E;
+  --g-dim: rgba(62,207,142,0.6);
+  --g-faint: rgba(62,207,142,0.07);
+  --ink: #e8f0eb;
+  --ink2: #8a9e93;
+  --ink3: #4a5c52;
+  --mono: 'IBM Plex Mono', monospace;
+  --serif: 'Fraunces', Georgia, serif;
+}
+
+html, body { min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 13px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+/* ── Grid bg ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.5;
+}
+
+/* ── Glow ── */
+body::after {
+  content: '';
+  position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 400px;
+  background: radial-gradient(ellipse, rgba(62,207,142,0.07) 0%, transparent 70%);
+  z-index: 0; pointer-events: none;
+}
+
+.page { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 60px 24px 80px; }
+
+/* ── Header ── */
+header { margin-bottom: 56px; }
+.back { display: inline-flex; align-items: center; gap: 6px; color: var(--ink3); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; margin-bottom: 32px; transition: color .15s; }
+.back:hover { color: var(--g); }
+.back::before { content: '←'; }
+
+.eyebrow { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--g); margin-bottom: 10px; }
+
+h1 { font-family: var(--serif); font-weight: 300; font-size: clamp(2.2rem, 5vw, 3.4rem); letter-spacing: -.02em; line-height: 1.05; color: var(--ink); margin-bottom: 16px; }
+h1 em { font-style: italic; color: var(--g); }
+
+.lead { font-family: var(--mono); font-size: 13px; color: var(--ink2); max-width: 56ch; line-height: 1.8; }
+
+/* ── Section heading ── */
+.section-label {
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink3);
+  border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 20px;
+}
+
+/* ── Pipeline ── */
+.pipeline-wrap { margin-bottom: 48px; }
+
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  margin-bottom: 2px;
+}
+
+.stage {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 18px 12px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: background .18s, border-color .18s;
+  border-right: none;
+}
+.stage:last-child { border-right: 1px solid var(--border); }
+.stage:first-child { border-radius: 6px 0 0 6px; }
+.stage:last-child { border-radius: 0 6px 6px 0; }
+
+.stage::after {
+  content: '›';
+  position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
+  color: var(--ink3); font-size: 16px; z-index: 2;
+}
+.stage:last-child::after { display: none; }
+
+.stage:hover, .stage.active {
+  background: var(--g-faint);
+  border-color: var(--border2);
+}
+.stage.active { border-bottom-color: var(--g); }
+
+.stage-num { font-size: 9px; color: var(--ink3); letter-spacing: .1em; margin-bottom: 8px; }
+.stage-icon { font-size: 22px; margin-bottom: 6px; line-height: 1; }
+.stage-name { font-size: 12px; font-weight: 500; color: var(--ink); letter-spacing: .02em; }
+.stage-tech { font-size: 10px; color: var(--ink3); margin-top: 3px; }
+
+/* ── Detail panel ── */
+.detail-panel {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-top: 2px solid var(--g);
+  border-radius: 0 0 6px 6px;
+  padding: 24px;
+  display: none;
+  animation: slideDown .2s ease;
+}
+.detail-panel.open { display: block; }
+
+@keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+.detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.detail-title { font-family: var(--serif); font-weight: 600; font-size: 1.3rem; color: var(--ink); letter-spacing: -.015em; }
+.detail-sub { font-size: 12px; color: var(--ink2); line-height: 1.8; margin-bottom: 20px; max-width: 60ch; }
+
+.detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+@media (max-width: 540px) { .detail-grid { grid-template-columns: 1fr; } }
+
+.detail-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 10px 14px; }
+.detail-item-label { font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink3); margin-bottom: 3px; }
+.detail-item-val { font-size: 13px; color: var(--g); }
+
+.why-box {
+  background: rgba(62,207,142,0.04);
+  border-left: 2px solid var(--g);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 0 4px 4px 0;
+}
+.why-label { font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: var(--g-dim); margin-bottom: 4px; }
+.why-text { font-size: 12px; color: var(--ink2); line-height: 1.8; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 10px; padding: 3px 10px; border-radius: 3px; background: transparent; border: 1px solid var(--border2); color: var(--ink3); letter-spacing: .04em; }
+
+/* ── Infra grid ── */
+.infra-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 48px; }
+@media (max-width: 540px) { .infra-grid { grid-template-columns: 1fr 1fr; } }
+
+.infra-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px 16px;
+  transition: border-color .15s;
+}
+.infra-card:hover { border-color: var(--border2); }
+.infra-icon { font-size: 20px; margin-bottom: 8px; }
+.infra-name { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 3px; }
+.infra-desc { font-size: 11px; color: var(--ink3); }
+.infra-badge { display: inline-block; font-size: 9px; padding: 2px 7px; border-radius: 2px; background: rgba(62,207,142,0.1); border: 1px solid rgba(62,207,142,0.2); color: var(--g); margin-top: 6px; letter-spacing: .04em; }
+
+/* ── Metrics ── */
+.metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 48px; }
+@media (max-width: 600px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 18px 16px; }
+.metric-num { font-family: var(--serif); font-size: 2rem; font-weight: 300; color: var(--g); line-height: 1; margin-bottom: 6px; }
+.metric-label { font-size: 10px; color: var(--ink3); letter-spacing: .06em; text-transform: uppercase; }
+
+/* ── Code decision ── */
+.decisions { display: flex; flex-direction: column; gap: 12px; margin-bottom: 48px; }
+.decision { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px 20px; display: grid; grid-template-columns: 160px 1fr; gap: 16px; align-items: start; }
+@media (max-width: 560px) { .decision { grid-template-columns: 1fr; } }
+.decision-q { font-size: 11px; color: var(--ink3); letter-spacing: .04em; padding-top: 1px; }
+.decision-a { font-size: 12px; color: var(--ink2); line-height: 1.75; }
+.decision-a strong { color: var(--g); font-weight: 500; }
+
+/* ── Footer ── */
+footer { border-top: 1px solid var(--border); padding-top: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: gap; gap: 12px; }
+.footer-left { font-size: 11px; color: var(--ink3); }
+.footer-links { display: flex; gap: 16px; }
+.footer-links a { font-size: 11px; color: var(--ink3); text-decoration: none; letter-spacing: .06em; text-transform: uppercase; transition: color .15s; }
+.footer-links a:hover { color: var(--g); }
+
+/* ── Hint ── */
+.pipeline-hint { font-size: 10px; color: var(--ink3); letter-spacing: .06em; text-align: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <a href="https://askragify.vercel.app" class="back">askragify.vercel.app</a>
+    <p class="eyebrow">System Architecture</p>
+    <h1>How <em>Askragify</em><br>actually works</h1>
+    <p class="lead">A production RAG pipeline — scrape any URL, embed into pgvector, retrieve by cosine similarity, generate grounded answers with inline citations. Every decision documented.</p>
+  </header>
+
+  <!-- Pipeline -->
+  <div class="pipeline-wrap">
+    <p class="section-label">01 — Pipeline</p>
+    <div class="pipeline">
+      <div class="stage" onclick="openStage('scrape', this)">
+        <div class="stage-num">01</div>
+        <div class="stage-icon">🌐</div>
+        <div class="stage-name">Scrape</div>
+        <div class="stage-tech">httpx + BS4</div>
+      </div>
+      <div class="stage" onclick="openStage('embed', this)">
+        <div class="stage-num">02</div>
+        <div class="stage-icon">🔢</div>
+        <div class="stage-name">Embed</div>
+        <div class="stage-tech">Gemini</div>
+      </div>
+      <div class="stage" onclick="openStage('store', this)">
+        <div class="stage-num">03</div>
+        <div class="stage-icon">🗄️</div>
+        <div class="stage-name">Store</div>
+        <div class="stage-tech">pgvector</div>
+      </div>
+      <div class="stage" onclick="openStage('retrieve', this)">
+        <div class="stage-num">04</div>
+        <div class="stage-icon">🔍</div>
+        <div class="stage-name">Retrieve</div>
+        <div class="stage-tech">cosine sim</div>
+      </div>
+      <div class="stage" onclick="openStage('generate', this)">
+        <div class="stage-num">05</div>
+        <div class="stage-icon">💬</div>
+        <div class="stage-name">Generate</div>
+        <div class="stage-tech">Llama 3.3</div>
+      </div>
+    </div>
+
+    <div id="detail-panel" class="detail-panel"></div>
+    <p class="pipeline-hint" id="pipeline-hint">click any stage to inspect</p>
+  </div>
+
+  <!-- Infra -->
+  <p class="section-label">02 — Infrastructure</p>
+  <div class="infra-grid">
+    <div class="infra-card">
+      <div class="infra-icon">🚀</div>
+      <div class="infra-name">Railway</div>
+      <div class="infra-desc">FastAPI backend deployment</div>
+      <div class="infra-badge">Python</div>
+    </div>
+    <div class="infra-card">
+      <div class="infra-icon">▲</div>
+      <div class="infra-name">Vercel</div>
+      <div class="infra-desc">React frontend + edge CDN</div>
+      <div class="infra-badge">React 18</div>
+    </div>
+    <div class="infra-card">
+      <div class="infra-icon">🐘</div>
+      <div class="infra-name">Supabase</div>
+      <div class="infra-desc">PostgreSQL + pgvector extension</div>
+      <div class="infra-badge">pgvector</div>
+    </div>
+    <div class="infra-card">
+      <div class="infra-icon">💎</div>
+      <div class="infra-name">Gemini</div>
+      <div class="infra-desc">gemini-embedding-001, 768 dims</div>
+      <div class="infra-badge">Embeddings</div>
+    </div>
+    <div class="infra-card">
+      <div class="infra-icon">⚡</div>
+      <div class="infra-name">Groq</div>
+      <div class="infra-desc">llama-3.3-70b-versatile inference</div>
+      <div class="infra-badge">Generation</div>
+    </div>
+    <div class="infra-card">
+      <div class="infra-icon">🔐</div>
+      <div class="infra-name">Auth</div>
+      <div class="infra-desc">Bearer token + configurable CORS</div>
+      <div class="infra-badge">Security</div>
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <p class="section-label">03 — Parameters</p>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-num">768</div>
+      <div class="metric-label">Embedding dims</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-num">2k</div>
+      <div class="metric-label">Chars per chunk</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-num">200</div>
+      <div class="metric-label">Chunk overlap</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-num">50</div>
+      <div class="metric-label">Embed batch size</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-num">5</div>
+      <div class="metric-label">Default top-k</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-num">0.5</div>
+      <div class="metric-label">Min similarity</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-num">70B</div>
+      <div class="metric-label">Generator params</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-num">0.2</div>
+      <div class="metric-label">Temperature</div>
+    </div>
+  </div>
+
+  <!-- Design decisions -->
+  <p class="section-label">04 — Design Decisions</p>
+  <div class="decisions">
+    <div class="decision">
+      <div class="decision-q">Why pgvector over Pinecone?</div>
+      <div class="decision-a">Single source of truth — vectors and metadata live in the same Postgres database as everything else. No extra service, lower latency on retrieval, and the <strong>match_documents RPC</strong> keeps the cosine similarity math in the DB engine, not Python. Generous free tier on Supabase covers this project's scale.</div>
+    </div>
+    <div class="decision">
+      <div class="decision-q">Why separate task types for embed vs retrieve?</div>
+      <div class="decision-a">Gemini's embedding model was trained with <strong>RETRIEVAL_DOCUMENT</strong> for chunks stored at ingest time, and <strong>RETRIEVAL_QUERY</strong> for the user's question at query time. Using the correct task type measurably improves cosine similarity scores — the vectors are optimised for asymmetric search, not just nearest-neighbour.</div>
+    </div>
+    <div class="decision">
+      <div class="decision-q">Why temperature 0.2, not 0?</div>
+      <div class="decision-a">Temperature 0 produces technically correct but often robotic phrasing. <strong>0.2</strong> allows natural language variation while keeping the model citation-bound to the context window — the system prompt enforces inline [1][2] citations mapped to the sources array, so hallucination is structurally prevented, not just hoped for.</div>
+    </div>
+    <div class="decision">
+      <div class="decision-q">Why 200-char chunk overlap?</div>
+      <div class="decision-a">Sentences that straddle two chunk boundaries appear in full in at least one chunk. Without overlap, a key fact split across chunks would be truncated in both — retrieval would return broken context. <strong>200 chars (~50 tokens)</strong> is enough to preserve a complete sentence without duplicating so much content that storage balloons.</div>
+    </div>
+    <div class="decision">
+      <div class="decision-q">Why Groq for generation?</div>
+      <div class="decision-a">Groq's LPU hardware runs <strong>Llama 3.3 70B</strong> at ~800 tokens/sec — fast enough that the demo feels responsive without streaming. Free tier is production-usable for a portfolio project. The model itself is open-weight and strong at instruction-following and citation formatting.</div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-left">Built by Shaun Chikerema · Gaborone, Botswana</div>
+    <div class="footer-links">
+      <a href="https://askragify.vercel.app">Live Demo</a>
+      <a href="https://github.com/shaunChikerema">GitHub</a>
+      <a href="https://shaunchikerema.dev">Portfolio</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+const stages = {
+  scrape: {
+    title: 'Web Scraper',
+    sub: 'Fetches any HTML URL with a browser-like User-Agent via httpx, strips noise tags (nav, footer, header, aside, script, style), extracts clean body text with BeautifulSoup, then splits into overlapping character chunks at word boundaries.',
+    items: [['Library','httpx + BeautifulSoup4'],['Chunk size','2000 chars (~500 tokens)'],['Overlap','200 chars'],['Validated types','HTML only']],
+    why: 'Word-boundary splits prevent tokens from being cut mid-word. The 200-char overlap means a sentence spanning two chunks appears complete in at least one — broken context at retrieval time is the most common RAG failure mode.',
+    chips: ['httpx','BeautifulSoup4','re','Python 3.12']
+  },
+  embed: {
+    title: 'Embedding — Gemini',
+    sub: 'Sends chunks to Gemini in batches of 50 using RETRIEVAL_DOCUMENT task type. Returns 768-dimensional float vectors. Deduplicates by first 200 chars of content before batching to prevent re-storing identical chunks on re-ingest.',
+    items: [['Model','gemini-embedding-001'],['Dimensions','768'],['Batch size','50 (API limit)'],['Task type','RETRIEVAL_DOCUMENT']],
+    why: 'RETRIEVAL_DOCUMENT vs RETRIEVAL_QUERY are different task types — Gemini was trained to optimise them for asymmetric search. Using the correct type at both ingest and query time measurably improves similarity scores.',
+    chips: ['google-generativeai','Pydantic v2']
+  },
+  store: {
+    title: 'Vector Store — pgvector',
+    sub: 'Inserts each chunk with its 768-dim embedding and JSONB metadata (url, label) into a Supabase PostgreSQL table. Retrieval uses a custom SQL RPC function — match_documents — that runs cosine similarity search natively in the DB.',
+    items: [['Database','Supabase PostgreSQL'],['Extension','pgvector'],['Index','IVFFlat cosine'],['Metadata','url + label (JSONB)']],
+    why: 'Keeping vectors in Postgres eliminates a network hop to a separate vector service. The match_documents RPC runs the cosine math in the DB engine — faster than pulling vectors into Python and computing there.',
+    chips: ['supabase-py','pgvector','PostgreSQL 15']
+  },
+  retrieve: {
+    title: 'Retrieval — Cosine Similarity',
+    sub: 'Embeds the user question with RETRIEVAL_QUERY task type (different from document embedding), then calls match_documents RPC with configurable top_k and similarity_threshold. Returns ranked chunks with source URLs and similarity scores.',
+    items: [['Query task type','RETRIEVAL_QUERY'],['Default top-k','5'],['Min similarity','0.5 (tunable)'],['Returns','content + url + score']],
+    why: 'Both top_k and similarity_threshold are exposed as API parameters — the frontend Settings tab lets users tune them live. This isn\'t decoration: tightening threshold to 0.8 produces more precise answers, loosening to 0.3 broader recall.',
+    chips: ['google-generativeai','supabase-py','FastAPI']
+  },
+  generate: {
+    title: 'Generation — Llama 3.3 70B',
+    sub: 'Builds a system prompt with numbered context blocks and source list. Appends full conversation history for multi-turn support. The model is instructed to cite inline using [1][2] notation mapped to the sources array returned by the API.',
+    items: [['Model','llama-3.3-70b-versatile'],['Provider','Groq (LPU inference)'],['Temperature','0.2'],['Multi-turn','Full history passed']],
+    why: 'Temperature 0.2 allows natural phrasing while staying citation-bound. Groq\'s LPU runs 70B at ~800 tok/s — fast enough for a snappy demo. System prompt structurally forces citations, so hallucination is prevented by architecture, not just prompted away.',
+    chips: ['groq-sdk','Pydantic v2','FastAPI']
+  }
+};
+
+let activeStage = null;
+
+function openStage(id, el) {
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+
+  if (activeStage === id) {
+    activeStage = null;
+    document.getElementById('detail-panel').classList.remove('open');
+    document.getElementById('pipeline-hint').style.display = '';
+    return;
+  }
+  activeStage = id;
+
+  const d = stages[id];
+  const panel = document.getElementById('detail-panel');
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-title">${d.title}</div>
+    </div>
+    <div class="detail-sub">${d.sub}</div>
+    <div class="detail-grid">
+      ${d.items.map(([l,v]) => `<div class="detail-item"><div class="detail-item-label">${l}</div><div class="detail-item-val">${v}</div></div>`).join('')}
+    </div>
+    <div class="why-box">
+      <div class="why-label">Why this choice</div>
+      <div class="why-text">${d.why}</div>
+    </div>
+    <div class="chips">
+      ${d.chips.map(c => `<span class="chip">${c}</span>`).join('')}
+    </div>
+  `;
+  panel.classList.add('open');
+  document.getElementById('pipeline-hint').style.display = 'none';
+}
+</script>
+</body>
+</html>

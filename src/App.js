@@ -3,6 +3,35 @@ import './App.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+function SendIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
+function BrandIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
+    </svg>
+  );
+}
+
+function EmptyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" stroke="currentColor">
+      <circle cx="11" cy="11" r="8" />
+      <path d="M21 21l-4.35-4.35" />
+      <path d="M11 8v6M8 11h6" />
+    </svg>
+  );
+}
+
 function App() {
   const [tab, setTab] = useState('chat');
   const [messages, setMessages] = useState([]);
@@ -87,37 +116,36 @@ function App() {
 
   const clearChat = () => setMessages([]);
 
+  const statusLabel = apiStatus === 'checking' ? 'connecting…' : apiStatus === 'online' ? 'API online' : 'API offline';
+
   return (
     <div className="app">
-      {/* Noise overlay */}
-      <div className="noise" />
 
       {/* Header */}
       <header className="header">
-        <div className="header-left">
-          <div className="logo">
-            <span className="logo-bracket">[</span>
-            RAG
-            <span className="logo-bracket">]</span>
+        <div className="brand">
+          <div className="brand-icon"><BrandIcon /></div>
+          <div>
+            <div className="brand-name">RAG Engine</div>
+            <div className="brand-sub">knowledge base</div>
           </div>
-          <span className="logo-sub">Research Engine</span>
         </div>
-        <div className="header-right">
+        <div className="status-pill">
           <div className={`status-dot ${apiStatus}`} />
-          <span className="status-label">{apiStatus === 'checking' ? 'connecting...' : apiStatus === 'online' ? 'API online' : 'API offline'}</span>
+          <span className="status-label">{statusLabel}</span>
         </div>
       </header>
 
       {/* Tabs */}
       <nav className="tabs">
         <button className={`tab ${tab === 'chat' ? 'active' : ''}`} onClick={() => setTab('chat')}>
-          <span className="tab-num">01</span> Query
+          <span className="tab-icon">◎</span> Query
         </button>
         <button className={`tab ${tab === 'ingest' ? 'active' : ''}`} onClick={() => setTab('ingest')}>
-          <span className="tab-num">02</span> Ingest
+          <span className="tab-icon">⊕</span> Ingest
         </button>
         <button className={`tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
-          <span className="tab-num">03</span> Settings
+          <span className="tab-icon">⊡</span> Settings
         </button>
       </nav>
 
@@ -130,18 +158,21 @@ function App() {
             <div className="chat-messages">
               {messages.length === 0 && (
                 <div className="empty-state">
-                  <div className="empty-icon">◈</div>
+                  <div className="empty-glyph"><EmptyIcon /></div>
                   <p className="empty-title">Ask anything</p>
-                  <p className="empty-sub">Ingest some URLs first, then query your knowledge base.</p>
+                  <p className="empty-sub">Ingest some URLs first, then query.</p>
                 </div>
               )}
               {messages.map((msg, i) => (
                 <div key={i} className={`message message-${msg.role} ${msg.error ? 'message-error' : ''}`}>
-                  <div className="message-role">{msg.role === 'user' ? '▸ YOU' : '◈ RAG'}</div>
+                  <div className="message-role">
+                    <span className="role-dot" />
+                    {msg.role === 'user' ? 'YOU' : 'RAG'}
+                  </div>
                   <div className="message-content">{msg.content}</div>
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="sources">
-                      <div className="sources-label">SOURCES</div>
+                      <div className="sources-label">Sources</div>
                       {msg.sources.map((s, si) => (
                         <a key={si} href={s.url} target="_blank" rel="noreferrer" className="source-item">
                           <span className="source-num">[{si + 1}]</span>
@@ -154,7 +185,10 @@ function App() {
               ))}
               {loading && (
                 <div className="message message-assistant">
-                  <div className="message-role">◈ RAG</div>
+                  <div className="message-role">
+                    <span className="role-dot" />
+                    RAG
+                  </div>
                   <div className="typing">
                     <span /><span /><span />
                   </div>
@@ -164,13 +198,16 @@ function App() {
             </div>
 
             <div className="chat-input-area">
-              {messages.length > 0 && (
-                <button className="clear-btn" onClick={clearChat}>Clear chat</button>
-              )}
+              <div className="input-top">
+                <span className="msg-count">{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
+                {messages.length > 0 && (
+                  <button className="clear-btn" onClick={clearChat}>Clear chat</button>
+                )}
+              </div>
               <div className="input-row">
                 <textarea
                   className="chat-input"
-                  placeholder="Ask a question about your ingested content..."
+                  placeholder="Ask a question about your ingested content…"
                   value={question}
                   onChange={e => setQuestion(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -178,7 +215,7 @@ function App() {
                   disabled={loading}
                 />
                 <button className="send-btn" onClick={handleQuery} disabled={loading || !question.trim()}>
-                  {loading ? '...' : '→'}
+                  {loading ? '…' : <SendIcon />}
                 </button>
               </div>
               <div className="input-hint">Enter to send · Shift+Enter for new line</div>
@@ -189,9 +226,10 @@ function App() {
         {/* ── INGEST TAB ── */}
         {tab === 'ingest' && (
           <div className="ingest-layout">
-            <div className="ingest-form">
+            <div className="panel">
+              <div className="panel-title">Add URL to knowledge base</div>
               <div className="field-group">
-                <label className="field-label">URL TO INGEST</label>
+                <label className="field-label">URL</label>
                 <input
                   className="field-input"
                   type="url"
@@ -202,7 +240,7 @@ function App() {
                 />
               </div>
               <div className="field-group">
-                <label className="field-label">LABEL <span className="optional">(optional)</span></label>
+                <label className="field-label">Label <span className="optional">(optional)</span></label>
                 <input
                   className="field-input"
                   type="text"
@@ -216,22 +254,22 @@ function App() {
                 onClick={handleIngest}
                 disabled={ingestLoading || !ingestUrl.trim()}
               >
-                {ingestLoading ? 'Ingesting...' : 'Ingest URL →'}
+                {ingestLoading ? 'Ingesting…' : 'Ingest URL →'}
               </button>
             </div>
 
             {ingestLog.length > 0 && (
               <div className="ingest-log">
-                <div className="log-title">INGEST LOG</div>
+                <div className="log-title">Ingest log</div>
                 {ingestLog.map((entry, i) => (
                   <div key={i} className={`log-entry log-${entry.status}`}>
                     <div className="log-url">{entry.url}</div>
                     <div className="log-meta">
-                      {entry.label && <span className="log-label">{entry.label}</span>}
-                      <span className="log-time">{entry.time}</span>
-                      {entry.status === 'loading' && <span className="log-status">ingesting...</span>}
-                      {entry.status === 'done' && <span className="log-status">✓ {entry.chunks} chunks stored</span>}
-                      {entry.status === 'error' && <span className="log-status log-err">✕ {entry.error}</span>}
+                      {entry.label && <span className="log-chip">{entry.label}</span>}
+                      <span>{entry.time}</span>
+                      {entry.status === 'loading' && <span className="log-status">ingesting…</span>}
+                      {entry.status === 'done'    && <span className="log-status">✓ {entry.chunks} chunks stored</span>}
+                      {entry.status === 'error'   && <span className="log-status err">✕ {entry.error}</span>}
                     </div>
                   </div>
                 ))}
@@ -243,12 +281,12 @@ function App() {
         {/* ── SETTINGS TAB ── */}
         {tab === 'settings' && (
           <div className="settings-layout">
-            <div className="setting-card">
-              <div className="setting-title">RETRIEVAL SETTINGS</div>
+            <div className="panel">
+              <div className="panel-title">Retrieval settings</div>
 
               <div className="setting-row">
                 <div className="setting-info">
-                  <div className="setting-name">Top K Results</div>
+                  <div className="setting-name">Top K results</div>
                   <div className="setting-desc">Number of chunks retrieved per query</div>
                 </div>
                 <div className="setting-control">
@@ -263,7 +301,7 @@ function App() {
 
               <div className="setting-row">
                 <div className="setting-info">
-                  <div className="setting-name">Similarity Threshold</div>
+                  <div className="setting-name">Similarity threshold</div>
                   <div className="setting-desc">Minimum cosine similarity score (0–1)</div>
                 </div>
                 <div className="setting-control">
@@ -277,22 +315,22 @@ function App() {
               </div>
             </div>
 
-            <div className="setting-card">
-              <div className="setting-title">API CONNECTION</div>
+            <div className="panel">
+              <div className="panel-title">API connection</div>
               <div className="setting-row">
                 <div className="setting-info">
                   <div className="setting-name">Backend URL</div>
-                  <div className="setting-desc mono">{API_URL}</div>
+                  <div className="setting-desc">{API_URL}</div>
                 </div>
                 <div className={`status-badge ${apiStatus}`}>{apiStatus}</div>
               </div>
             </div>
 
-            <div className="setting-card danger-card">
-              <div className="setting-title">DANGER ZONE</div>
+            <div className="panel danger-card">
+              <div className="panel-title">Danger zone</div>
               <div className="setting-row">
                 <div className="setting-info">
-                  <div className="setting-name">Clear All Documents</div>
+                  <div className="setting-name">Clear all documents</div>
                   <div className="setting-desc">Permanently deletes all ingested content from the database</div>
                 </div>
                 <button className="danger-btn" onClick={async () => {
