@@ -5,16 +5,16 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 function SendIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#061008" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" fill="#061008" stroke="none" />
     </svg>
   );
 }
 
 function BrandIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2L2 7l10 5 10-5-10-5z" />
       <path d="M2 17l10 5 10-5" />
       <path d="M2 12l10 5 10-5" />
@@ -22,30 +22,27 @@ function BrandIcon() {
   );
 }
 
-function EmptyIcon() {
+function SearchIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" stroke="currentColor">
-      <circle cx="11" cy="11" r="8" />
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" stroke="currentColor" style={{ width: 24, height: 24 }}>
+      <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.35-4.35" />
-      <path d="M11 8v6M8 11h6" />
     </svg>
   );
 }
 
 function App() {
-  const [tab, setTab] = useState('chat');
-  const [messages, setMessages] = useState([]);
-  const [question, setQuestion] = useState('');
-  const [topK, setTopK] = useState(5);
-  const [threshold, setThreshold] = useState(0.5);
-  const [loading, setLoading] = useState(false);
-
-  const [ingestUrl, setIngestUrl] = useState('');
-  const [ingestLabel, setIngestLabel] = useState('');
+  const [tab, setTab]                   = useState('chat');
+  const [messages, setMessages]         = useState([]);
+  const [question, setQuestion]         = useState('');
+  const [topK, setTopK]                 = useState(5);
+  const [threshold, setThreshold]       = useState(0.5);
+  const [loading, setLoading]           = useState(false);
+  const [ingestUrl, setIngestUrl]       = useState('');
+  const [ingestLabel, setIngestLabel]   = useState('');
   const [ingestLoading, setIngestLoading] = useState(false);
-  const [ingestLog, setIngestLog] = useState([]);
-
-  const [apiStatus, setApiStatus] = useState('checking');
+  const [ingestLog, setIngestLog]       = useState([]);
+  const [apiStatus, setApiStatus]       = useState('checking');
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -88,9 +85,7 @@ function App() {
     setMessages(prev => [...prev, userMsg]);
     setQuestion('');
     setLoading(true);
-
     const history = messages.map(m => ({ role: m.role, content: m.content }));
-
     try {
       const res = await fetch(`${API_URL}/query`, {
         method: 'POST',
@@ -108,26 +103,25 @@ function App() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleQuery();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleQuery(); }
   };
 
   const clearChat = () => setMessages([]);
 
-  const statusLabel = apiStatus === 'checking' ? 'connecting…' : apiStatus === 'online' ? 'API online' : 'API offline';
+  const statusLabel = apiStatus === 'checking' ? 'connecting…'
+    : apiStatus === 'online' ? 'API online'
+    : 'API offline';
 
   return (
     <div className="app">
 
-      {/* Header */}
+      {/* ── Header ── */}
       <header className="header">
         <div className="brand">
           <div className="brand-icon"><BrandIcon /></div>
           <div>
-            <div className="brand-name">RAG Engine</div>
-            <div className="brand-sub">knowledge base</div>
+            <div className="brand-name">Askragify</div>
+            <div className="brand-sub">RAG · knowledge base</div>
           </div>
         </div>
         <div className="status-pill">
@@ -136,38 +130,70 @@ function App() {
         </div>
       </header>
 
-      {/* Tabs */}
+      {/* ── Tabs ── */}
       <nav className="tabs">
-        <button className={`tab ${tab === 'chat' ? 'active' : ''}`} onClick={() => setTab('chat')}>
-          <span className="tab-icon">◎</span> Query
-        </button>
-        <button className={`tab ${tab === 'ingest' ? 'active' : ''}`} onClick={() => setTab('ingest')}>
-          <span className="tab-icon">⊕</span> Ingest
-        </button>
-        <button className={`tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
-          <span className="tab-icon">⊡</span> Settings
-        </button>
+        {[
+          { id: 'chat',     label: 'Query' },
+          { id: 'ingest',   label: 'Ingest' },
+          { id: 'settings', label: 'Settings' },
+        ].map(t => (
+          <button
+            key={t.id}
+            className={`tab ${tab === t.id ? 'active' : ''}`}
+            onClick={() => setTab(t.id)}
+          >
+            <span className="tab-dot" />
+            {t.label}
+          </button>
+        ))}
       </nav>
 
-      {/* Main */}
+      {/* ── Main ── */}
       <main className="main">
 
-        {/* ── CHAT TAB ── */}
+        {/* ════════ CHAT ════════ */}
         {tab === 'chat' && (
           <div className="chat-layout">
             <div className="chat-messages">
+
               {messages.length === 0 && (
                 <div className="empty-state">
-                  <div className="empty-glyph"><EmptyIcon /></div>
-                  <p className="empty-title">Ask anything</p>
-                  <p className="empty-sub">Ingest some URLs first, then query.</p>
+                  <div className="empty-glyph">
+                    <SearchIcon />
+                  </div>
+                  <p className="empty-title">Nothing ingested yet</p>
+                  <p className="empty-sub">
+                    Add a URL to your knowledge base first,<br />then ask questions about it here.
+                  </p>
+
+                  <div className="empty-steps">
+                    <div className="empty-step">
+                      <div className="step-num">01</div>
+                      <div className="step-body">
+                        <div className="step-title">Ingest a URL</div>
+                        <div className="step-desc">Paste any public URL — docs, articles, blog posts. The pipeline scrapes, chunks, and embeds it into your vector DB.</div>
+                        <button className="step-cta" onClick={() => setTab('ingest')}>
+                          Go to Ingest →
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="empty-step">
+                      <div className="step-num">02</div>
+                      <div className="step-body">
+                        <div className="step-title">Ask a question</div>
+                        <div className="step-desc">Come back here and type anything. The RAG pipeline retrieves the most relevant chunks and generates a grounded answer with inline source citations.</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
+
               {messages.map((msg, i) => (
-                <div key={i} className={`message message-${msg.role} ${msg.error ? 'message-error' : ''}`}>
+                <div key={i} className={`message message-${msg.role}${msg.error ? ' message-error' : ''}`}>
                   <div className="message-role">
                     <span className="role-dot" />
-                    {msg.role === 'user' ? 'YOU' : 'RAG'}
+                    {msg.role === 'user' ? 'YOU' : 'ASKRAGIFY'}
                   </div>
                   <div className="message-content">{msg.content}</div>
                   {msg.sources && msg.sources.length > 0 && (
@@ -183,17 +209,19 @@ function App() {
                   )}
                 </div>
               ))}
+
               {loading && (
                 <div className="message message-assistant">
                   <div className="message-role">
                     <span className="role-dot" />
-                    RAG
+                    ASKRAGIFY
                   </div>
                   <div className="typing">
                     <span /><span /><span />
                   </div>
                 </div>
               )}
+
               <div ref={bottomRef} />
             </div>
 
@@ -215,7 +243,7 @@ function App() {
                   disabled={loading}
                 />
                 <button className="send-btn" onClick={handleQuery} disabled={loading || !question.trim()}>
-                  {loading ? '…' : <SendIcon />}
+                  {loading ? <span style={{ color: '#061008', fontSize: 16 }}>…</span> : <SendIcon />}
                 </button>
               </div>
               <div className="input-hint">Enter to send · Shift+Enter for new line</div>
@@ -223,7 +251,7 @@ function App() {
           </div>
         )}
 
-        {/* ── INGEST TAB ── */}
+        {/* ════════ INGEST ════════ */}
         {tab === 'ingest' && (
           <div className="ingest-layout">
             <div className="panel">
@@ -278,7 +306,7 @@ function App() {
           </div>
         )}
 
-        {/* ── SETTINGS TAB ── */}
+        {/* ════════ SETTINGS ════════ */}
         {tab === 'settings' && (
           <div className="settings-layout">
             <div className="panel">
@@ -287,14 +315,11 @@ function App() {
               <div className="setting-row">
                 <div className="setting-info">
                   <div className="setting-name">Top K results</div>
-                  <div className="setting-desc">Number of chunks retrieved per query</div>
+                  <div className="setting-desc">Chunks retrieved per query</div>
                 </div>
                 <div className="setting-control">
-                  <input
-                    type="range" min="1" max="20" value={topK}
-                    onChange={e => setTopK(Number(e.target.value))}
-                    className="slider"
-                  />
+                  <input type="range" min="1" max="20" value={topK}
+                    onChange={e => setTopK(Number(e.target.value))} className="slider" />
                   <span className="slider-val">{topK}</span>
                 </div>
               </div>
@@ -305,11 +330,8 @@ function App() {
                   <div className="setting-desc">Minimum cosine similarity score (0–1)</div>
                 </div>
                 <div className="setting-control">
-                  <input
-                    type="range" min="0" max="1" step="0.05" value={threshold}
-                    onChange={e => setThreshold(Number(e.target.value))}
-                    className="slider"
-                  />
+                  <input type="range" min="0" max="1" step="0.05" value={threshold}
+                    onChange={e => setThreshold(Number(e.target.value))} className="slider" />
                   <span className="slider-val">{threshold.toFixed(2)}</span>
                 </div>
               </div>
@@ -331,7 +353,7 @@ function App() {
               <div className="setting-row">
                 <div className="setting-info">
                   <div className="setting-name">Clear all documents</div>
-                  <div className="setting-desc">Permanently deletes all ingested content from the database</div>
+                  <div className="setting-desc">Permanently deletes all ingested content</div>
                 </div>
                 <button className="danger-btn" onClick={async () => {
                   if (!window.confirm('Delete ALL documents? This cannot be undone.')) return;
