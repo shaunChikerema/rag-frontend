@@ -8,8 +8,8 @@ function genSessionId() {
 }
 
 function getOrCreateSessionId() {
-  let id = localStorage.getItem('askragify_session');
-  if (!id) { id = genSessionId(); localStorage.setItem('askragify_session', id); }
+  let id = localStorage.getItem('ragify_session');
+  if (!id) { id = genSessionId(); localStorage.setItem('ragify_session', id); }
   return id;
 }
 
@@ -252,7 +252,7 @@ function App() {
 
   const newSession = () => {
     const id = genSessionId();
-    localStorage.setItem('askragify_session', id);
+    localStorage.setItem('ragify_session', id);
     window.location.reload();
   };
 
@@ -266,7 +266,7 @@ function App() {
         <div className="brand">
           <div className="brand-icon"><BrandIcon /></div>
           <div>
-            <div className="brand-name">Askragify</div>
+            <div className="brand-name">Ragify</div>
             <div className="brand-sub">RAG · knowledge base</div>
           </div>
         </div>
@@ -319,7 +319,7 @@ function App() {
                       <span className="step-num">2</span>
                       <div className="step-body">
                         <div className="step-title">Ask a question</div>
-                        <div className="step-desc">Or just chat — Askragify answers from its own knowledge too.</div>
+                        <div className="step-desc">Or just chat — Ragify answers from its own knowledge too.</div>
                       </div>
                     </div>
                   </div>
@@ -330,7 +330,7 @@ function App() {
                 <div key={msg.id || i} className={`message message-${msg.role}${msg.error ? ' message-error' : ''}`}>
                   <div className="message-role">
                     <span className="role-dot" />
-                    {msg.role === 'user' ? 'YOU' : 'ASKRAGIFY'}
+                    {msg.role === 'user' ? 'YOU' : 'RAGIFY'}
                     {msg.fallback && <span className="fallback-badge">model knowledge</span>}
                     {msg.streaming && <span className="streaming-badge">typing...</span>}
                   </div>
@@ -362,7 +362,7 @@ function App() {
 
               {loading && !streaming && (
                 <div className="message message-assistant">
-                  <div className="message-role"><span className="role-dot" />ASKRAGIFY</div>
+                  <div className="message-role"><span className="role-dot" />RAGIFY</div>
                   <div className="typing"><span /><span /><span /></div>
                 </div>
               )}
